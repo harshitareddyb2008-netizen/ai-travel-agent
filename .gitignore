@@ -10,3 +10,7 @@ venv/
 # OS
 Thumbs.db
 .DS_Store
+
+# Working scratch
+_to_delete/
+cleaned_flight_data.csv
