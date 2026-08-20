@@ -1,6 +1,10 @@
 """
 AI Travel Analyst - Simple Streamlit Dashboard
 Run with: streamlit run app.py
+
+This file cleans the raw dataset itself (same simple steps as analysis.py)
+so the dashboard works standalone when deployed - it doesn't depend on
+analysis.py having been run first.
 """
 
 import pandas as pd
@@ -10,9 +14,58 @@ import streamlit as st
 
 st.set_page_config(page_title="AI Travel Analyst", layout="wide")
 
-# ---------- Load cleaned data ----------
-# analysis.py already cleaned the raw data and saved this file.
-df = pd.read_csv("cleaned_flight_data.csv")
+
+@st.cache_data
+def load_data():
+    df = pd.read_csv("data/flight_pricing_dataset.csv")
+    df = df.drop_duplicates()
+    df = df.dropna(subset=["Price"])
+
+    # Clean text out of numeric columns, e.g. "Rs. 200,000.00", "150 km", "3 days", "two".
+    df["Price"] = df["Price"].astype(str).str.replace("Rs.", "", regex=False).str.replace(",", "", regex=False)
+    df["Distance_km"] = df["Distance_km"].astype(str).str.replace(" km", "", regex=False)
+    df["Days_Before_Departure"] = df["Days_Before_Departure"].astype(str).str.replace(" days", "", regex=False)
+    word_to_number = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6}
+    df["Passenger_Count"] = df["Passenger_Count"].replace(word_to_number)
+    for col in ["Price", "Distance_km", "Days_Before_Departure", "Passenger_Count"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    df = df.dropna(subset=["Price"])
+
+    # Standardize airline spelling.
+    df["Airline"] = df["Airline"].str.strip().str.title()
+
+    # Standardize city names (name / "name Airport" / airport code -> one name).
+    airport_codes = {
+        "AMD": "Ahmedabad", "BLR": "Bangalore", "BKK": "Bangkok", "MAA": "Chennai",
+        "DEL": "Delhi", "DOH": "Doha", "DXB": "Dubai", "FRA": "Frankfurt",
+        "GOI": "Goa", "HYD": "Hyderabad", "JAI": "Jaipur", "CCU": "Kolkata",
+        "LHR": "London", "BOM": "Mumbai", "JFK": "New York", "PNQ": "Pune",
+        "SIN": "Singapore", "SYD": "Sydney",
+    }
+    for col in ["Source", "Destination"]:
+        df[col] = df[col].str.replace(" Airport", "", regex=False).str.strip()
+        df[col] = df[col].replace(airport_codes)
+
+    # Turn stops text into a plain number.
+    stop_map = {"non-stop": 0, "0": 0, "1 stop": 1, "1": 1, "2 stops": 2, "2": 2}
+    df["Total_Stops"] = df["Total_Stops"].map(stop_map)
+
+    # Turn duration text into hours.
+    def to_hours(value):
+        text = str(value)
+        if "h" in text:
+            hours, minutes = text.replace("h", "").replace("m", "").split()
+            return round(int(hours) + int(minutes) / 60, 2)
+        if "min" in text:
+            return round(float(text.replace("min", "").strip()) / 60, 2)
+        return float(text)
+
+    df["Duration_Hours"] = df["Duration"].dropna().apply(to_hours)
+
+    return df
+
+
+df = load_data()
 
 # ---------- Header ----------
 st.title("AI Travel Analyst")

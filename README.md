@@ -2,6 +2,8 @@
 
 Part 1 (Exploration) submission for the MIC AIML Department Recruitment Challenge — Track 3: Data Science & Visualization.
 
+**Live demo:** _add your Streamlit Community Cloud link here after deploying (see step 11)._
+
 ## 1. Project Overview
 
 This project analyzes a flight price dataset to understand what actually drives flight prices. It cleans the raw data, explores it with simple Pandas operations, builds 6 visualizations, identifies the major price factors, and turns those findings into insights and traveler recommendations. A small Streamlit dashboard presents the same analysis interactively.
@@ -171,10 +173,12 @@ pip install -r requirements.txt
 # Run the analysis (cleans the data, prints EDA, saves charts to screenshots/)
 python analysis.py
 
-# Run the dashboard (uses the cleaned data saved by analysis.py)
+# Run the dashboard (cleans the data itself, so it also works standalone)
 streamlit run app.py
 ```
-Run `analysis.py` first — it creates `cleaned_flight_data.csv`, which `app.py` reads.
+`app.py` repeats the same simple cleaning steps as `analysis.py` (cached with `@st.cache_data` so it only runs once) so the dashboard is self-contained — this matters for deployment, since a hosting platform only runs `app.py`, not `analysis.py` first.
+
+**Live demo:** deployed on Streamlit Community Cloud — add the link at the top of this README once deployed.
 
 ## 12. Future Improvements
 
