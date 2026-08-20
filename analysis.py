@@ -115,6 +115,9 @@ print(df["Duration_Hours"].corr(df["Price"]))
 print("\n--- Correlation: Distance vs Price ---")
 print(df["Distance_km"].corr(df["Price"]))
 
+print("\n--- Correlation: Days Before Departure vs Price ---")
+print(df["Days_Before_Departure"].corr(df["Price"]))
+
 print("\n--- Average price by source city ---")
 print(df.groupby("Source")["Price"].mean().sort_values(ascending=False))
 
@@ -180,6 +183,15 @@ sns.barplot(x=avg_by_class.index, y=avg_by_class.values)
 plt.title("Average Flight Price by Travel Class")
 plt.ylabel("Average Price")
 plt.savefig("screenshots/6_price_by_class.png", bbox_inches="tight")
+plt.show()
+
+# Bonus Graph 7: Correlation heatmap - all numeric factors at a glance
+plt.figure(figsize=(7, 5))
+numeric_cols = ["Price", "Distance_km", "Duration_Hours", "Days_Before_Departure", "Total_Stops"]
+corr_matrix = df[numeric_cols].corr()
+sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", fmt=".2f")
+plt.title("Correlation Between Numeric Factors")
+plt.savefig("screenshots/7_correlation_heatmap.png", bbox_inches="tight")
 plt.show()
 
 print("\nAll charts saved in the screenshots folder.")

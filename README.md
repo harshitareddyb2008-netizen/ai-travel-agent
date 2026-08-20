@@ -2,15 +2,15 @@
 
 Part 1 (Exploration) submission for the MIC AIML Department Recruitment Challenge — Track 3: Data Science & Visualization.
 
-**Live demo:** _add your Streamlit Community Cloud link here after deploying (see step 11)._
+**Live demo:** https://ai-travel-agent-kupkisdxtnzb6mt5wcdydm.streamlit.app/
 
 ## 1. Project Overview
 
-This project analyzes a flight price dataset to understand what actually drives flight prices. It cleans the raw data, explores it with simple Pandas operations, builds 6 visualizations, identifies the major price factors, and turns those findings into insights and traveler recommendations. A small Streamlit dashboard presents the same analysis interactively.
+This project analyzes a flight price dataset to understand what actually drives flight prices. It cleans the raw data, explores it with simple Pandas operations, builds 7 visualizations, identifies the major price factors, and turns those findings into insights and traveler recommendations. A Streamlit dashboard presents the same analysis interactively, plus a simple fare estimator built directly from the data (no machine learning).
 
 ## 2. Problem Statement
 
-Flight prices look unpredictable to a traveler booking a ticket. The goal of this project is to explore a real flight price dataset and answer: which factors (airline, stops, duration, route, class, month) are actually associated with higher or lower prices, and what should a traveler take away from that?
+Flight prices look unpredictable to a traveler booking a ticket. The goal of this project is to explore a real flight price dataset and answer: which factors (airline, stops, duration, route, class, month, days before departure) are actually associated with higher or lower prices, and what should a traveler take away from that?
 
 ## 3. Dataset
 
@@ -104,6 +104,7 @@ Missing values in other columns were **left as NaN**, not filled in — with ~93
 | Price vs stops | 0 stops ₹61,603 → 1 stop ₹79,447 → 2 stops ₹84,661 (rises with stops) |
 | Price vs duration | Correlation = 0.67 (moderately strong, positive) |
 | Price vs distance | Correlation = 0.69 (moderately strong, positive) |
+| Price vs days before departure | Correlation = -0.10 (very weak) |
 | Highest-price source city | New York — ₹155,396 |
 | Lowest-price source city | Goa — ₹47,221 |
 | Price vs travel class | Economy ₹59,668 → Premium Economy ₹81,857 → Business ₹115,828 → First ₹133,873 |
@@ -122,55 +123,68 @@ All charts are in `screenshots/` and are produced by `analysis.py`.
 4. **Price vs Flight Duration** (scatter plot) — shows a positive relationship between duration and price.
 5. **Average Price by Source City** (bar chart) — shows international source cities priced far above domestic ones.
 6. **Average Price by Travel Class** (bar chart, bonus) — shows a clean step-up in price with each class.
+7. **Correlation Heatmap** (bonus) — all 5 numeric factors (Price, Distance, Duration, Days Before Departure, Stops) compared at once, so the strongest and weakest relationships are visible in a single picture.
 
-## 7. Major Factors Affecting Flight Prices
+## 7. Interactive Dashboard Features (app.py)
+
+The live dashboard goes beyond a static report with a few simple, explainable additions — all still plain Pandas/Streamlit, no machine learning:
+
+- **Tabbed layout** (`st.tabs`) — Overview, Price Estimator, Price Factors, and Insights & Recommendations, so the app reads like a short guided story instead of one long scroll.
+- **💰 Price Estimator** — pick an airline, source city, travel class, and number of stops, and it shows the *average price of similar real flights already in the data* (`df[filters]["Price"].mean()`). This is a simple lookup, not a prediction model — the app says so explicitly, so it stays honest about what it is.
+- **🔍 Price Factors tab** — the correlation heatmap plus a factor table whose numbers are **computed live from the data with pandas** every time the app runs, not typed in by hand. If the dataset changes, the table updates itself.
+- **⬇ Download filtered data** — a button to export whatever subset of flights the sidebar filters currently show, as a CSV.
+
+## 8. Major Factors Affecting Flight Prices
 
 | Factor | Observation |
 |---|---|
 | Travel Class | Strongest, cleanest factor — average price rises consistently from Economy to First |
 | Distance | Longer distance is associated with a higher price (correlation 0.69) |
 | Airline | Airlines fall into 3 price tiers, associated with whether they run budget/domestic or international routes |
-| Duration | Longer duration is associated with a higher price (correlation 0.67) |
+| Duration | Longer duration is associated with a higher price (correlation 0.67) — and duration/distance are almost perfectly correlated with *each other* (0.99), so they largely represent the same effect |
 | Source City | International source cities show much higher average prices than domestic cities |
 | Stops | More stops is associated with a *higher* average price, likely because stops are more common on long international routes |
+| Days Before Departure | Almost no relationship with price (correlation -0.10) — booking early doesn't clearly save money in this dataset |
 | Month | Only a small effect — about 12% difference between the cheapest and priciest month |
 
 None of these factors are claimed to *cause* price changes — they are associations observed in this dataset.
 
-## 8. Key Insights
+## 9. Key Insights
 
 1. The average price (₹72,990) is well above the median (₹49,100) — the distribution is right-skewed, with a smaller number of expensive international flights pulling the average up.
 2. Airlines split into three clear price tiers: budget carriers (GoFirst, Indigo, AirAsia India, SpiceJet) average ₹10,000–11,000, Vistara and Air India average around ₹45,000, and international carriers (Qatar Airways, Singapore Airlines, Emirates, etc.) average ₹98,000–101,000.
 3. Flights with more stops tend to have a *higher* average price, not lower — this is the opposite of common intuition, and most likely happens because long international routes are the ones that need stopovers.
-4. Flight duration and distance both show a moderately strong positive relationship with price (correlations of 0.67 and 0.69), making them two of the strongest price drivers found.
+4. Flight duration and distance both show a moderately strong positive relationship with price (correlations of 0.67 and 0.69) — but they're also 0.99 correlated with each other, so they're really one signal ("trip length"), not two independent ones.
 5. Source city matters a lot: flights from New York (₹155,396) and Sydney (₹142,725) average roughly 3x the price of flights from Indian cities like Goa (₹47,221) or Hyderabad (₹48,309).
 6. Travel class is one of the clearest price factors — Economy, Premium Economy, Business, and First each step up in price in that exact order.
-7. The month of departure has only a mild effect on price — a ~12% gap between the cheapest (August) and priciest (March) months, far smaller than the swing seen across airlines or classes.
-8. About 9.8% of flights are priced at exactly ₹200,000, an unusually large spike for one exact value — worth flagging as a likely data artifact rather than a real pricing pattern.
+7. Days before departure has almost no relationship with price here (correlation -0.10) — a genuinely useful negative result, since it means "book early to save money" isn't well supported by this dataset.
+8. The month of departure has only a mild effect on price — a ~12% gap between the cheapest (August) and priciest (March) months, far smaller than the swing seen across airlines or classes.
+9. About 9.8% of flights are priced at exactly ₹200,000, an unusually large spike for one exact value — worth flagging as a likely data artifact rather than a real pricing pattern.
 
-## 9. Recommendations
+## 10. Recommendations
 
 - Travelers looking for lower fares may consider budget-tier airlines (GoFirst, Indigo, AirAsia India, SpiceJet) over full-service carriers when the route allows it.
 - Don't assume a route with stops will be cheaper — in this data, more stops is associated with higher prices, not lower, so it's worth comparing actual fares rather than assuming.
 - Travelers with flexible plans could consider Economy or Premium Economy, since Business and First carry substantially higher average prices.
 - Because price rises with distance and duration, travelers flying long-haul international routes (e.g. from New York, Sydney, London) should budget for a much higher fare than domestic routes.
+- Don't rely on booking far in advance to save money on this data — it showed almost no effect on price, unlike class, airline, or distance.
 - Since month-to-month differences are relatively small in this data, choice of airline and travel class is a bigger lever for savings than trying to time the month of travel.
 
-## 10. Technologies Used
+## 11. Technologies Used
 
 - **Python** — programming language
 - **Pandas** — loading, cleaning, and analyzing the data
-- **Matplotlib & Seaborn** — visualizations
-- **Streamlit** — the interactive dashboard
+- **Matplotlib & Seaborn** — visualizations, including the correlation heatmap
+- **Streamlit** — the interactive dashboard (tabs, filters, live fare estimator, CSV download)
 
-No machine learning is used in Part 1 — all findings come from simple grouping, averaging, and correlation.
+No machine learning is used in Part 1 — all findings, including the fare estimator, come from simple grouping, averaging, filtering, and correlation.
 
-## 11. How to Run
+## 12. How to Run
 
 ```bash
 pip install -r requirements.txt
 
-# Run the analysis (cleans the data, prints EDA, saves charts to screenshots/)
+# Run the analysis (cleans the data, prints EDA, saves 7 charts to screenshots/)
 python analysis.py
 
 # Run the dashboard (cleans the data itself, so it also works standalone)
@@ -178,11 +192,11 @@ streamlit run app.py
 ```
 `app.py` repeats the same simple cleaning steps as `analysis.py` (cached with `@st.cache_data` so it only runs once) so the dashboard is self-contained — this matters for deployment, since a hosting platform only runs `app.py`, not `analysis.py` first.
 
-**Live demo:** deployed on Streamlit Community Cloud — add the link at the top of this README once deployed.
+**Live demo:** https://ai-travel-agent-kupkisdxtnzb6mt5wcdydm.streamlit.app/
 
-## 12. Future Improvements
+## 13. Future Improvements
 
-- Part 2 could add a simple regression model to predict price and compare it against these observed factors.
+- Part 2 could add a simple regression model to predict price and compare it against these observed factors (and against the simple lookup-based estimator already in the dashboard).
 - The exact-₹200,000 spike could be investigated further (e.g. by checking if it correlates with a specific Season, Booking_Channel, or Aircraft_Type in the raw data).
 - More granular geography (e.g. actual routes, not just source city) could sharpen the location-based insights.
 
@@ -205,11 +219,11 @@ Identical rows don't add new information — keeping them would double-count som
 **How did you handle missing values?**
 I only dropped rows where the value I actually needed for a specific analysis was missing (like Price). I didn't fill in guessed values for other columns, because inventing numbers for the very columns I'm using to measure price effects would bias my own results.
 
-**Why did you choose these six visualizations?**
-Each one answers a specific question from the challenge brief: overall price distribution, price by airline, price by stops, price vs duration, price by source city, and (as a bonus) price by travel class, which turned out to be the strongest factor.
+**Why did you choose these seven visualizations?**
+Each one answers a specific question from the challenge brief: overall price distribution, price by airline, price by stops, price vs duration, price by source city, price by travel class (which turned out to be the strongest factor), and a correlation heatmap that summarizes all the numeric relationships in one picture.
 
 **What is the strongest factor affecting price?**
-Travel class showed the cleanest, most consistent pattern — price increases at every step from Economy to Premium Economy to Business to First. Distance and duration were also strong (correlation around 0.67–0.69).
+Travel class showed the cleanest, most consistent pattern — price increases at every step from Economy to Premium Economy to Business to First. Distance and duration were also strong (correlation around 0.67–0.69), though they turned out to be almost the same signal as each other.
 
 **What is correlation?**
 It's a number between -1 and 1 that measures how strongly two numeric variables move together. Close to 1 means they rise together, close to -1 means one rises as the other falls, and close to 0 means little relationship.
@@ -217,17 +231,23 @@ It's a number between -1 and 1 that measures how strongly two numeric variables 
 **Does correlation mean causation?**
 No. A correlation just shows that two things move together in the data — it doesn't prove one causes the other. For example, stops being associated with higher prices doesn't mean adding a stop makes a flight more expensive; it's more likely that both are driven by something else, like the flight being a long international route.
 
+**What's the "Price Estimator" in the dashboard — is that machine learning?**
+No, and I'm upfront about that in the app itself. It filters the cleaned data down to flights matching what the user picked (airline, source, class, stops) and shows the average and typical price range of those real flights. It's a simple, fully explainable lookup — I intentionally kept it that way instead of adding a model, since the brief asks for Part 1 exploration, not Part 2 modeling.
+
+**Why did you add a correlation heatmap and a live-computed factor table?**
+The heatmap lets you see all the numeric relationships at once instead of reading correlations one at a time, and it's how it caught something I wouldn't have spotted otherwise — that distance and duration are 0.99 correlated with each other. The factor table's numbers are computed by pandas every time the app runs rather than typed in by hand, so it can't go stale if the data changes.
+
 **Why did you use Pandas?**
 It's the standard, simple tool for tabular data in Python — reading CSVs, cleaning columns, and grouping data all have short, readable one-line solutions.
 
 **Why did you use Seaborn?**
-It builds on Matplotlib but needs less code for common statistical charts like box plots and histograms, and its default styling is cleaner.
+It builds on Matplotlib but needs less code for common statistical charts like box plots, histograms, and heatmaps, and its default styling is cleaner.
 
 **Why did you use Streamlit?**
-It turns a Python script into an interactive dashboard with very little code — no separate frontend needed — which fits the "keep it simple" goal of this project.
+It turns a Python script into an interactive dashboard with very little code — no separate frontend needed — which fits the "keep it simple" goal of this project, while `st.tabs` let me organize four different views without building custom navigation.
 
 **What was the biggest challenge?**
 Figuring out exactly how each column was messy before writing any cleaning code. For example, I initially converted Price straight to numbers and lost about 3% of rows — inspecting *why* they failed showed they were formatted like "Rs. 200,000.00", so I fixed the actual text problem instead of just dropping the rows.
 
 **What would you improve in the future?**
-I'd dig deeper into the exact-₹200,000 price spike I found, and in Part 2 I'd build a simple prediction model to check whether it agrees with the factors I found through basic EDA here.
+I'd dig deeper into the exact-₹200,000 price spike I found, and in Part 2 I'd build a simple prediction model to check whether it agrees with the factors I found through basic EDA here — and compare it against the honest, lookup-based estimator already in the dashboard.
